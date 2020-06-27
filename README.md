@@ -7,7 +7,7 @@ Authorization server using [Telegram](https://core.telegram.org/widgets/login) a
 Works with:
 
 * [NGINX](http://nginx.org/en/docs/http/ngx_http_auth_request_module.html)
-* [NGINX Ingress controller](https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/annotations/#external-authentication).
+* [NGINX Ingress controller](https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/annotations/#external-authentication)
 
 Usage:
 
