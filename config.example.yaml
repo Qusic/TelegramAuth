@@ -1,0 +1,42 @@
+global:
+  # Set up a Telegram bot and link your domain to the bot.
+  # See https://core.telegram.org/widgets/login for more information.
+  bot: MyTelegramBot
+  token: 1234:ABCDEFG
+  # Listen address for the HTTP server.
+  address: :80
+  # Path prefix for auth endpoints, without trailing slash.
+  # You can leave it empty if it is deployed on a dedicated domain.
+  prefix: /auth
+cookie:
+  # Set-Cookie name for end users, required.
+  name: token
+  # Set-Cookie path, optional.
+  path: /
+  # Set-Cookie domain, optional.
+  domain: example.com
+auth:
+  # If set, the authenticated username will be added in this response header.
+  header: X-Telegram-Auth
+  # Generally speaking, tokens are only valid for this duration after issued.
+  duration: 12h
+  # But to reduce interruption from expiration,
+  # tokens can outlive the duration if being used continuously.
+  # Such tokens will be finally invalidated if unused for this timeout.
+  timeout: 10m
+apps:
+  - name: app1 # All auth endpoints will be prefixed with the name of the app for identification purpose.
+    url: /app # URL of the app to redirect to after auth completed.
+    users: # List of usernames that have access to this app, case-sensitive.
+      - username
+  - name: app2
+    url: https://myapp.example.com/
+    users:
+      - UserMe
+      - UserA
+      - UserB
+      - UserC
+  - name: app2-admin
+    url: https://myapp.example.com/admin
+    users:
+      - UserMe
