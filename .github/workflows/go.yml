@@ -31,7 +31,7 @@ jobs:
     needs: build
     if: github.event_name == 'push' && needs.build.result == 'success'
     env:
-      IMAGE_TAG: docker.pkg.github.com/${{github.repository}}/app
+      IMAGE_TAG: docker.pkg.github.com/qusic/telegramauth/app
     steps:
       - name: Check out code
         uses: actions/checkout@v2
