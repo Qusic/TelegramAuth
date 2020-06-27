@@ -2,3 +2,6 @@
 /.devcontainer
 /TelegramAuth
 /config.yaml
+*.exe
+*.test
+*.out
