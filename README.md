@@ -1,5 +1,7 @@
 # TelegramAuth
 
+[![Go](https://github.com/Qusic/TelegramAuth/workflows/Go/badge.svg?branch=master)](https://github.com/Qusic/TelegramAuth/actions?query=workflow%3AGo)
+
 Authorization server using [Telegram](https://core.telegram.org/widgets/login) as the authentication provider.
 
 Works with:
