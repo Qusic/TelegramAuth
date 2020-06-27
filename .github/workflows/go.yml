@@ -25,17 +25,19 @@ jobs:
         run: go test -v -coverprofile=coverage.out
       - name: Show coverage
         run: go tool cover -func=coverage.out
-  publish:
-    name: Publish Docker image
+  docker:
+    name: Docker Image
     runs-on: ubuntu-latest
     needs: build
-    if: github.event_name == 'push' && needs.build.result == 'success'
-    env:
-      IMAGE_TAG: docker.pkg.github.com/qusic/telegramauth/app
     steps:
       - name: Check out code
         uses: actions/checkout@v2
-      - name: Build image
-        run: docker build . --tag $IMAGE_TAG
-      - name: Push image
-        run: docker push $IMAGE_TAG
+      - name: Build and push image
+        uses: docker/build-push-action@v1
+        with:
+          username: Qusic
+          password: ${{secrets.GITHUB_TOKEN}}
+          registry: docker.pkg.github.com
+          repository: qusic/telegramauth/app
+          tags: latest
+          push: ${{github.event_name == 'push'}}
