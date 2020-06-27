@@ -25,3 +25,17 @@ jobs:
         run: go test -v -coverprofile=coverage.out
       - name: Show coverage
         run: go tool cover -func=coverage.out
+  publish:
+    name: Publish Docker image
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'push' && needs.build.result == 'success'
+    env:
+      IMAGE_TAG: docker.pkg.github.com/${{github.repository}}/app
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+      - name: Build image
+        run: docker build . --tag $IMAGE_TAG
+      - name: Push image
+        run: docker push $IMAGE_TAG
