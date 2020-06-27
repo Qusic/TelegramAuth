@@ -21,9 +21,9 @@ func main() {
 	r.Use(middleware.Timeout(time.Minute))
 
 	r.Route(config.pathPrefix+"/{app}", func(r chi.Router) {
-		r.Get("/", useContext(handleAuth))
-		r.Get("/login", useContext(handleLogin))
-		r.Get("/callback", useContext(handleCallback))
+		r.Handle("/", useContext(handleAuth))
+		r.Handle("/login", useContext(handleLogin))
+		r.Handle("/callback", useContext(handleCallback))
 	})
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
