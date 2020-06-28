@@ -38,6 +38,6 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
           registry: docker.pkg.github.com
-          repository: qusic/telegramauth/app
+          repository: qusic/telegramauth/telegramauth
           tags: latest
           push: ${{ github.event_name == 'push' }}
