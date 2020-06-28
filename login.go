@@ -30,17 +30,6 @@ const loginPageStart = `
 <html>
 <head>
 <meta charset="utf-8">
-<style>
-body {
-	width: 100vw;
-	height: 100vh;
-	margin: 0;
-	font-family: system-ui;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-}
-</style>
 </head>
 <body>
 `
