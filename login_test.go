@@ -1,9 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 	"time"
 
@@ -13,50 +13,48 @@ import (
 func TestHandleLogin(t *testing.T) {
 	config.botName = "test_bot"
 	config.pathPrefix = "test_prefix"
-	config.cookieName = "cookie"
-	app := "test_app"
-	url := "/test_app_url"
+	role := "test_role"
+	redirect := "https://example.com/test_redirect"
 	_,
 		validUser, invalidUser,
 		validToken1, validToken2,
 		invalidTokenNoSignature, invalidTokenBadSignature := setupTestToken()
-	config.appURL = map[string]string{app: url}
 	for _, data := range []struct {
-		access string
-		token  string
-		valid  int
+		binding string
+		token   string
+		valid   int
 	}{
-		{access: validUser, token: validToken1, valid: 1},
-		{access: validUser, token: validToken2, valid: 1},
-		{access: validUser, token: invalidTokenNoSignature, valid: -1},
-		{access: validUser, token: invalidTokenBadSignature, valid: -1},
-		{access: invalidUser, token: validToken1, valid: 0},
-		{access: invalidUser, token: validToken2, valid: 0},
-		{access: invalidUser, token: invalidTokenNoSignature, valid: -1},
-		{access: invalidUser, token: invalidTokenBadSignature, valid: -1},
+		{binding: validUser, token: validToken1, valid: 1},
+		{binding: validUser, token: validToken2, valid: 1},
+		{binding: validUser, token: invalidTokenNoSignature, valid: -1},
+		{binding: validUser, token: invalidTokenBadSignature, valid: -1},
+		{binding: invalidUser, token: validToken1, valid: 0},
+		{binding: invalidUser, token: validToken2, valid: 0},
+		{binding: invalidUser, token: invalidTokenNoSignature, valid: -1},
+		{binding: invalidUser, token: invalidTokenBadSignature, valid: -1},
 	} {
-		config.appAccess = map[string]map[string]bool{app: {data.access: true}}
+		config.roleBindings = map[string]map[string]bool{role: {data.binding: true}}
 		state.authCache = map[string]time.Time{}
-		ctx := context{app: app}
+		ctx := context{role: role, redirect: redirect, cookie: data.token}
 		rr := httptest.NewRecorder()
-		cookie := http.Cookie{Name: config.cookieName, Value: data.token}
 		r := httptest.NewRequest(http.MethodGet, "/", nil)
-		r.AddCookie(&cookie)
 		handleLogin(rr, r, &ctx)
 		switch data.valid {
 		case 1:
 			assert.Equal(t, http.StatusFound, rr.Code)
 			location, _ := rr.Result().Location()
-			assert.Equal(t, url, location.String())
+			assert.Equal(t, redirect, location.String())
 		case 0:
 			assert.Equal(t, http.StatusOK, rr.Code)
 			body := rr.Body.String()
-			assert.Contains(t, body, fmt.Sprintf("@%v", validUser))
+			assert.Contains(t, body, "@"+validUser)
 		case -1:
 			assert.Equal(t, http.StatusOK, rr.Code)
 			body := rr.Body.String()
-			assert.Contains(t, body, fmt.Sprintf("data-telegram-login=\"%v\"", config.botName))
-			assert.Contains(t, body, fmt.Sprintf("data-auth-url=\"%v/%v/callback\"", config.pathPrefix, app))
+			assert.Contains(t, body, config.botName)
+			assert.Contains(t, body, config.pathPrefix+"/callback")
+			assert.Contains(t, body, config.queryRole+"="+url.QueryEscape(role))
+			assert.Contains(t, body, config.queryRedirect+"="+url.QueryEscape(redirect))
 		}
 	}
 }

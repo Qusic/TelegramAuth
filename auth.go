@@ -6,13 +6,12 @@ import (
 )
 
 func handleAuth(w http.ResponseWriter, r *http.Request, ctx *context) {
-	token := tokenFromCookie(r)
-	valid, user := useToken(token, time.Now())
+	valid, user := useToken(ctx.cookie, time.Now())
 	if !valid {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
-	access, ok := config.appAccess[ctx.app][user]
+	access, ok := config.roleBindings[ctx.role][user]
 	if !ok || !access {
 		w.WriteHeader(http.StatusUnauthorized)
 		return

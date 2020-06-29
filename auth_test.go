@@ -10,34 +10,31 @@ import (
 )
 
 func TestHandleAuth(t *testing.T) {
-	config.cookieName = "cookie"
 	config.authHeader = "X-Test-Header"
-	app := "test_app"
+	role := "test_role"
 	_,
 		validUser, invalidUser,
 		validToken1, validToken2,
 		invalidTokenNoSignature, invalidTokenBadSignature := setupTestToken()
 	for _, data := range []struct {
-		access string
-		token  string
-		valid  bool
+		binding string
+		token   string
+		valid   bool
 	}{
-		{access: validUser, token: validToken1, valid: true},
-		{access: validUser, token: validToken2, valid: true},
-		{access: validUser, token: invalidTokenNoSignature, valid: false},
-		{access: validUser, token: invalidTokenBadSignature, valid: false},
-		{access: invalidUser, token: validToken1, valid: false},
-		{access: invalidUser, token: validToken2, valid: false},
-		{access: invalidUser, token: invalidTokenNoSignature, valid: false},
-		{access: invalidUser, token: invalidTokenBadSignature, valid: false},
+		{binding: validUser, token: validToken1, valid: true},
+		{binding: validUser, token: validToken2, valid: true},
+		{binding: validUser, token: invalidTokenNoSignature, valid: false},
+		{binding: validUser, token: invalidTokenBadSignature, valid: false},
+		{binding: invalidUser, token: validToken1, valid: false},
+		{binding: invalidUser, token: validToken2, valid: false},
+		{binding: invalidUser, token: invalidTokenNoSignature, valid: false},
+		{binding: invalidUser, token: invalidTokenBadSignature, valid: false},
 	} {
-		config.appAccess = map[string]map[string]bool{app: {data.access: true}}
+		config.roleBindings = map[string]map[string]bool{role: {data.binding: true}}
 		state.authCache = map[string]time.Time{}
-		ctx := context{app: app}
+		ctx := context{role: role, cookie: data.token}
 		rr := httptest.NewRecorder()
-		cookie := http.Cookie{Name: config.cookieName, Value: data.token}
 		r := httptest.NewRequest(http.MethodGet, "/", nil)
-		r.AddCookie(&cookie)
 		handleAuth(rr, r, &ctx)
 		if data.valid {
 			assert.Equal(t, http.StatusOK, rr.Code)

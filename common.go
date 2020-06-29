@@ -14,12 +14,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-chi/chi"
 	"gopkg.in/yaml.v3"
 )
 
 type context struct {
-	app string
+	role     string
+	redirect string
+	query    string
+	cookie   string
 }
 
 var (
@@ -28,14 +30,15 @@ var (
 		botToken      string
 		listenAddress string
 		pathPrefix    string
+		queryRole     string
+		queryRedirect string
 		cookieName    string
 		cookiePath    string
 		cookieDomain  string
 		authHeader    string
 		authDuration  time.Duration
 		authTimeout   time.Duration
-		appURL        map[string]string
-		appAccess     map[string]map[string]bool
+		roleBindings  map[string]map[string]bool
 	}
 	state struct {
 		authCache map[string]time.Time
@@ -44,10 +47,9 @@ var (
 )
 
 func initialize(file string, fatal func(v ...interface{})) {
-	type configApp struct {
-		Name  string
-		URL   string
-		Users []string
+	type configRole struct {
+		ID       string
+		Bindings []string
 	}
 	type configRoot struct {
 		Global struct {
@@ -55,6 +57,10 @@ func initialize(file string, fatal func(v ...interface{})) {
 			Token   string
 			Address string
 			Prefix  string
+		}
+		Query struct {
+			Role     string
+			Redirect string
 		}
 		Cookie struct {
 			Name   string
@@ -66,7 +72,7 @@ func initialize(file string, fatal func(v ...interface{})) {
 			Duration string
 			Timeout  string
 		}
-		Apps []configApp
+		Roles []configRole
 	}
 	readString := func(str string, field string, required bool) string {
 		if required && str == "" {
@@ -101,23 +107,22 @@ func initialize(file string, fatal func(v ...interface{})) {
 	config.botToken = readString(root.Global.Token, "global.token", true)
 	config.listenAddress = readString(root.Global.Address, "global.address", true)
 	config.pathPrefix = readString(root.Global.Prefix, "global.prefix", false)
+	config.queryRole = readString(root.Query.Role, "query.role", true)
+	config.queryRedirect = readString(root.Query.Redirect, "query.redirect", true)
 	config.cookieName = readString(root.Cookie.Name, "cookie.name", true)
 	config.cookiePath = readString(root.Cookie.Path, "cookie.path", false)
 	config.cookieDomain = readString(root.Cookie.Domain, "cookie.domain", false)
 	config.authHeader = readString(root.Auth.Header, "auth.header", false)
 	config.authDuration = readDuration(root.Auth.Duration, "auth.duration", true)
 	config.authTimeout = readDuration(root.Auth.Timeout, "auth.timeout", true)
-	config.appURL = map[string]string{}
-	config.appAccess = map[string]map[string]bool{}
-	for index, app := range root.Apps {
-		field := fmt.Sprintf("apps[%v].", index)
-		name := readString(app.Name, field+"name", true)
-		url := readString(app.URL, field+"url", true)
-		users := readStrings(app.Users, field+"users", true)
-		config.appURL[name] = url
-		config.appAccess[name] = map[string]bool{}
-		for _, user := range users {
-			config.appAccess[name][user] = true
+	config.roleBindings = map[string]map[string]bool{}
+	for index, role := range root.Roles {
+		field := fmt.Sprintf("roles[%v].", index)
+		id := readString(role.ID, field+"id", true)
+		bindings := readStrings(role.Bindings, field+"bindings", true)
+		config.roleBindings[id] = map[string]bool{}
+		for _, binding := range bindings {
+			config.roleBindings[id][binding] = true
 		}
 	}
 	state.authCache = map[string]time.Time{}
@@ -126,9 +131,17 @@ func initialize(file string, fatal func(v ...interface{})) {
 func useContext(next func(http.ResponseWriter, *http.Request, *context)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := context{}
-		ctx.app = chi.URLParam(r, "app")
-		if _, ok := config.appURL[ctx.app]; !ok {
-			w.WriteHeader(http.StatusNotFound)
+		q := r.URL.Query()
+		ctx.role = q.Get(config.queryRole)
+		ctx.redirect = q.Get(config.queryRedirect)
+		q.Del(config.queryRole)
+		q.Del(config.queryRedirect)
+		ctx.query = q.Encode()
+		if c, err := r.Cookie(config.cookieName); err == nil {
+			ctx.cookie = c.Value
+		}
+		if _, ok := config.roleBindings[ctx.role]; !ok {
+			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 		next(w, r, &ctx)
@@ -169,21 +182,7 @@ func useToken(token string, now time.Time) (valid bool, user string) {
 	return
 }
 
-func tokenFromQuery(r *http.Request) (token string) {
-	token = r.URL.RawQuery
-	return token
-}
-
-func tokenFromCookie(r *http.Request) (token string) {
-	cookie, err := r.Cookie(config.cookieName)
-	if err != nil {
-		return
-	}
-	token = cookie.Value
-	return
-}
-
-func tokenToCookie(token string) (cookie http.Cookie) {
+func buildCookie(token string) (cookie http.Cookie) {
 	cookie.Name = config.cookieName
 	cookie.Value = token
 	cookie.Path = config.cookiePath

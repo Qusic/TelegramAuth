@@ -8,6 +8,11 @@ global:
   # Path prefix for auth endpoints, without trailing slash.
   # You can leave it empty if it is deployed on a dedicated domain.
   prefix: /auth
+query:
+  # Query parameter of the role id for auth, required.
+  role: role
+  # Query parameter of the redirect url after auth completion, required.
+  redirect: redirect_uri
 cookie:
   # Set-Cookie name for end users, required.
   name: token
@@ -24,19 +29,21 @@ auth:
   # tokens can outlive the duration if being used continuously.
   # Such tokens will be finally invalidated if unused for this timeout.
   timeout: 10m
-apps:
-  - name: app1 # All auth endpoints will be prefixed with the name of the app for identification purpose.
-    url: /app # URL of the app to redirect to after auth completed.
-    users: # List of usernames that have access to this app, case-sensitive.
-      - username
-  - name: app2
-    url: https://myapp.example.com/
-    users:
+roles:
+  - id: owner # Passed to auth endpoints to determine authorization status.
+    bindings: # List of usernames assigned to this role.
       - UserMe
+  - id: contributor
+    bindings:
+      - UserMe
+      - UserA
+  - id: 123
+    bindings:
       - UserA
       - UserB
       - UserC
-  - name: app2-admin
-    url: https://myapp.example.com/admin
-    users:
-      - UserMe
+  - id: 0
+    bindings:
+      - UserD
+      - UserE
+      - UserF

@@ -20,7 +20,7 @@ func main() {
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Timeout(time.Minute))
 
-	r.Route(config.pathPrefix+"/{app}", func(r chi.Router) {
+	r.Route(config.pathPrefix, func(r chi.Router) {
 		r.Handle("/", useContext(handleAuth))
 		r.Handle("/login", useContext(handleLogin))
 		r.Handle("/callback", useContext(handleCallback))
@@ -32,19 +32,10 @@ func main() {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	})
 
-	log.Printf(startMessage,
-		config.botName, config.listenAddress, config.pathPrefix,
-		config.cookieName, config.authHeader,
-		config.authDuration.String(), config.authTimeout.String())
+	log.Printf("TelegramAuth is starting for @%v on %v%v",
+		config.botName, config.listenAddress, config.pathPrefix)
 	err := http.ListenAndServe(config.listenAddress, r)
 	if err != nil {
 		log.Fatalln("fail to start server:", err)
 	}
 }
-
-const startMessage = `
-TelegramAuth is starting for @%v on %v%v
-Cookie name for clients is "%v". Header name for servers is "%v".
-New tokens must be created in the past [%v] to be accepted.
-Accepted tokens can outlive the lifespan unless being unused in the past [%v].
-`

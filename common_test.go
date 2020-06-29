@@ -14,7 +14,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-chi/chi"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -76,63 +75,131 @@ func TestInitialize(t *testing.T) {
 	assert.Equal(t, "1234:ABCDEFG", config.botToken)
 	assert.Equal(t, ":80", config.listenAddress)
 	assert.Equal(t, "/auth", config.pathPrefix)
+	assert.Equal(t, "role", config.queryRole)
+	assert.Equal(t, "redirect_uri", config.queryRedirect)
 	assert.Equal(t, "token", config.cookieName)
 	assert.Equal(t, "/", config.cookiePath)
 	assert.Equal(t, "example.com", config.cookieDomain)
 	assert.Equal(t, "X-Telegram-Auth", config.authHeader)
 	assert.Equal(t, 12*time.Hour, config.authDuration)
 	assert.Equal(t, 10*time.Minute, config.authTimeout)
-	assert.Equal(t, map[string]string{
-		"app1":       "/app",
-		"app2":       "https://myapp.example.com/",
-		"app2-admin": "https://myapp.example.com/admin",
-	}, config.appURL)
 	assert.Equal(t, map[string]map[string]bool{
-		"app1": {
-			"username": true,
+		"owner": {
+			"UserMe": true,
 		},
-		"app2": {
+		"contributor": {
 			"UserMe": true,
 			"UserA":  true,
-			"UserB":  true,
-			"UserC":  true,
 		},
-		"app2-admin": {
-			"UserMe": true,
+		"123": {
+			"UserA": true,
+			"UserB": true,
+			"UserC": true,
 		},
-	}, config.appAccess)
+		"0": {
+			"UserD": true,
+			"UserE": true,
+			"UserF": true,
+		},
+	}, config.roleBindings)
 	assert.Equal(t, map[string]time.Time{}, state.authCache)
 }
 
 func TestUseContext(t *testing.T) {
-	config.appURL = map[string]string{
-		"apptest": "/",
+	config.queryRole = "roletest"
+	config.queryRedirect = "redirecttest"
+	config.cookieName = "cookietest"
+	config.roleBindings = map[string]map[string]bool{
+		"rb": {},
 	}
 	for _, data := range []struct {
-		path, app string
+		valid   bool
+		query   string
+		cookie  string
+		context context
 	}{
-		{path: "/", app: ""},
-		{path: "/authtest", app: ""},
-		{path: "/authtest/app", app: ""},
-		{path: "/authtest/apptest", app: "apptest"},
+		{valid: true,
+			query:  "roletest=rb&redirecttest=https%3A%2F%2Fexample.com%2Ftest&test=111",
+			cookie: "cookietest=123",
+			context: context{
+				role: "rb", redirect: "https://example.com/test",
+				query: "test=111", cookie: "123",
+			},
+		},
+		{valid: true,
+			query:  "roletest=rb&redirecttest=https%3A%2F%2Fexample.com%2Ftest&test=111",
+			cookie: "cookie=123",
+			context: context{
+				role: "rb", redirect: "https://example.com/test",
+				query: "test=111", cookie: "",
+			},
+		},
+		{valid: true,
+			query:  "roletest=rb&test=111",
+			cookie: "",
+			context: context{
+				role: "rb", redirect: "",
+				query: "test=111", cookie: "",
+			},
+		},
+		{valid: true,
+			query:  "roletest=rb",
+			cookie: "cookietest=123",
+			context: context{
+				role: "rb", redirect: "",
+				query: "", cookie: "123",
+			},
+		},
+		{valid: true,
+			query:  "roletest=rb",
+			cookie: "",
+			context: context{
+				role: "rb", redirect: "",
+				query: "", cookie: "",
+			},
+		},
+		{valid: false,
+			query:  "roletest=rb123",
+			cookie: "cookietest=123",
+			context: context{
+				role: "", redirect: "",
+				query: "", cookie: "",
+			},
+		},
+		{valid: false,
+			query:  "redirecttest=https%3A%2F%2Fexample.com%2Ftest",
+			cookie: "cookietest=123",
+			context: context{
+				role: "", redirect: "",
+				query: "", cookie: "",
+			},
+		},
+		{valid: false,
+			query:  "",
+			cookie: "",
+			context: context{
+				role: "", redirect: "",
+				query: "", cookie: "",
+			},
+		},
 	} {
 		called := false
-		app := ""
-		handler := func(w http.ResponseWriter, r *http.Request, ctx *context) {
+		ctx := context{}
+		handler := func(w http.ResponseWriter, r *http.Request, c *context) {
 			called = true
-			app = ctx.app
+			ctx = *c
 		}
 		rr := httptest.NewRecorder()
-		r := chi.NewRouter()
-		r.Get("/authtest/{app}", useContext(handler))
-		r.ServeHTTP(rr, httptest.NewRequest(http.MethodGet, data.path, nil))
-		if data.app == "" {
-			assert.False(t, called)
-			assert.Equal(t, http.StatusNotFound, rr.Code)
-		} else {
+		r := httptest.NewRequest(http.MethodGet, "/?"+data.query, nil)
+		r.Header.Set("Cookie", data.cookie)
+		useContext(handler).ServeHTTP(rr, r)
+		if data.valid {
 			assert.True(t, called)
-			assert.Equal(t, data.app, app)
+			assert.Equal(t, data.context, ctx)
 			assert.Equal(t, http.StatusOK, rr.Code)
+		} else {
+			assert.False(t, called)
+			assert.Equal(t, http.StatusBadRequest, rr.Code)
 		}
 	}
 }

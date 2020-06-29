@@ -3,26 +3,30 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"time"
 )
 
 func handleLogin(w http.ResponseWriter, r *http.Request, ctx *context) {
-	token := tokenFromCookie(r)
-	valid, user := useToken(token, time.Now())
+	valid, user := useToken(ctx.cookie, time.Now())
 	if !valid {
+		callback := fmt.Sprintf("%v/callback?%v=%v&%v=%v",
+			config.pathPrefix,
+			config.queryRole, url.QueryEscape(ctx.role),
+			config.queryRedirect, url.QueryEscape(ctx.redirect))
 		fmt.Fprint(w, loginPageStart)
-		fmt.Fprintf(w, unauthenticatedBody, config.botName, config.pathPrefix, ctx.app)
+		fmt.Fprintf(w, unauthenticatedBody, config.botName, callback)
 		fmt.Fprint(w, loginPageEnd)
 		return
 	}
-	access, ok := config.appAccess[ctx.app][user]
+	access, ok := config.roleBindings[ctx.role][user]
 	if !ok || !access {
 		fmt.Fprint(w, loginPageStart)
 		fmt.Fprintf(w, unauthorizedBody, user)
 		fmt.Fprint(w, loginPageEnd)
 		return
 	}
-	http.Redirect(w, r, config.appURL[ctx.app], http.StatusFound)
+	http.Redirect(w, r, ctx.redirect, http.StatusFound)
 }
 
 const loginPageStart = `
@@ -44,7 +48,7 @@ const unauthenticatedBody = `
 <script async src="https://telegram.org/js/telegram-widget.js"
 	data-telegram-login="%v"
 	data-size="large"
-	data-auth-url="%v/%v/callback">
+	data-auth-url="%v">
 </script>
 `
 

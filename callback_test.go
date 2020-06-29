@@ -3,7 +3,6 @@ package main
 import (
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"testing"
 	"time"
 
@@ -14,27 +13,25 @@ func TestHandleCallback(t *testing.T) {
 	config.cookieName = "cookie"
 	config.cookiePath = "/"
 	config.cookieDomain = "example.com"
-	app := "test_app"
+	role := "test_role"
 	_,
 		_, _,
 		validToken1, validToken2,
 		invalidTokenNoSignature, invalidTokenBadSignature := setupTestToken()
 	for _, data := range []struct {
-		url   string
-		token string
-		valid bool
+		redirect string
+		token    string
+		valid    bool
 	}{
-		{url: "/test_url_1", token: validToken1, valid: true},
-		{url: "/test_url_2", token: validToken2, valid: true},
-		{url: "/test_url_3", token: invalidTokenNoSignature, valid: false},
-		{url: "/test_url_4", token: invalidTokenBadSignature, valid: false},
+		{redirect: "/test_redirect_1", token: validToken1, valid: true},
+		{redirect: "/test_redirect_2", token: validToken2, valid: true},
+		{redirect: "/test_redirect_3", token: invalidTokenNoSignature, valid: false},
+		{redirect: "/test_redirect_4", token: invalidTokenBadSignature, valid: false},
 	} {
-		config.appURL = map[string]string{app: data.url}
 		state.authCache = map[string]time.Time{}
-		ctx := context{app: app}
+		ctx := context{role: role, redirect: data.redirect, query: data.token}
 		rr := httptest.NewRecorder()
-		url := url.URL{Path: "/", RawQuery: data.token}
-		r := httptest.NewRequest(http.MethodGet, url.String(), nil)
+		r := httptest.NewRequest(http.MethodGet, "/", nil)
 		handleCallback(rr, r, &ctx)
 		if data.valid {
 			assert.Equal(t, http.StatusFound, rr.Code)
@@ -45,7 +42,7 @@ func TestHandleCallback(t *testing.T) {
 			assert.Equal(t, config.cookiePath, cookies[0].Path)
 			assert.Equal(t, config.cookieDomain, cookies[0].Domain)
 			location, _ := rr.Result().Location()
-			assert.Equal(t, data.url, location.String())
+			assert.Equal(t, data.redirect, location.String())
 		} else {
 			assert.Equal(t, http.StatusBadRequest, rr.Code)
 		}
