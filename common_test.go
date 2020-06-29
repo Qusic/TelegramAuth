@@ -4,6 +4,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -21,7 +22,10 @@ func setupTestToken() (
 	now time.Time,
 	validUser, invalidUser string,
 	validToken1, validToken2 string,
-	invalidTokenNoSignature, invalidTokenBadSignature string,
+	invalidTokenNoSignature string,
+	invalidTokenBadSignature string,
+	invalidTokenBadString string,
+	invalidTokenBadTimestamp string,
 ) {
 	config.botName = "test_bot"
 	config.botToken = "test_bot_fake_token"
@@ -66,6 +70,11 @@ func setupTestToken() (
 	validToken2 = unsortedMessage + "&hash=" + signature
 	invalidTokenNoSignature = sortedMessage
 	invalidTokenBadSignature = validToken1 + "0"
+	invalidTokenBadString = "%xx"
+	message["auth_date"] = "xxxx"
+	invalidTokenBadTimestamp = fmt.Sprintf("%v&hash=%v",
+		stringify(message, true, true, "&"),
+		sign(stringify(message, false, true, "\n")))
 	return
 }
 
@@ -208,7 +217,10 @@ func TestUseToken(t *testing.T) {
 	now,
 		validUser, invalidUser,
 		validToken1, validToken2,
-		invalidTokenNoSignature, invalidTokenBadSignature := setupTestToken()
+		invalidTokenNoSignature,
+		invalidTokenBadSignature,
+		invalidTokenBadString,
+		invalidTokenBadTimestamp := setupTestToken()
 	for _, data := range []struct {
 		token string
 		valid bool
@@ -217,6 +229,8 @@ func TestUseToken(t *testing.T) {
 		{token: validToken2, valid: true},
 		{token: invalidTokenNoSignature, valid: false},
 		{token: invalidTokenBadSignature, valid: false},
+		{token: invalidTokenBadString, valid: false},
+		{token: invalidTokenBadTimestamp, valid: false},
 	} {
 		state.authCache = map[string]time.Time{}
 		valid, user := useToken(data.token, now)

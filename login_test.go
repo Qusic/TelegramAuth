@@ -18,7 +18,10 @@ func TestHandleLogin(t *testing.T) {
 	_,
 		validUser, invalidUser,
 		validToken1, validToken2,
-		invalidTokenNoSignature, invalidTokenBadSignature := setupTestToken()
+		invalidTokenNoSignature,
+		invalidTokenBadSignature,
+		invalidTokenBadString,
+		invalidTokenBadTimestamp := setupTestToken()
 	for _, data := range []struct {
 		binding string
 		token   string
@@ -28,10 +31,14 @@ func TestHandleLogin(t *testing.T) {
 		{binding: validUser, token: validToken2, valid: 1},
 		{binding: validUser, token: invalidTokenNoSignature, valid: -1},
 		{binding: validUser, token: invalidTokenBadSignature, valid: -1},
+		{binding: validUser, token: invalidTokenBadString, valid: -1},
+		{binding: validUser, token: invalidTokenBadTimestamp, valid: -1},
 		{binding: invalidUser, token: validToken1, valid: 0},
 		{binding: invalidUser, token: validToken2, valid: 0},
 		{binding: invalidUser, token: invalidTokenNoSignature, valid: -1},
 		{binding: invalidUser, token: invalidTokenBadSignature, valid: -1},
+		{binding: invalidUser, token: invalidTokenBadString, valid: -1},
+		{binding: invalidUser, token: invalidTokenBadTimestamp, valid: -1},
 	} {
 		config.roleBindings = map[string]map[string]bool{role: {data.binding: true}}
 		state.authCache = map[string]time.Time{}

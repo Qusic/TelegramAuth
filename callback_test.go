@@ -17,7 +17,10 @@ func TestHandleCallback(t *testing.T) {
 	_,
 		_, _,
 		validToken1, validToken2,
-		invalidTokenNoSignature, invalidTokenBadSignature := setupTestToken()
+		invalidTokenNoSignature,
+		invalidTokenBadSignature,
+		invalidTokenBadString,
+		invalidTokenBadTimestamp := setupTestToken()
 	for _, data := range []struct {
 		redirect string
 		token    string
@@ -27,6 +30,8 @@ func TestHandleCallback(t *testing.T) {
 		{redirect: "/test_redirect_2", token: validToken2, valid: true},
 		{redirect: "/test_redirect_3", token: invalidTokenNoSignature, valid: false},
 		{redirect: "/test_redirect_4", token: invalidTokenBadSignature, valid: false},
+		{redirect: "/test_redirect_5", token: invalidTokenBadString, valid: false},
+		{redirect: "/test_redirect_6", token: invalidTokenBadTimestamp, valid: false},
 	} {
 		state.authCache = map[string]time.Time{}
 		ctx := context{role: role, redirect: data.redirect, query: data.token}
