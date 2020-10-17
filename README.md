@@ -28,7 +28,7 @@ Endpoints:
 Example with NGINX Ingress controller:
 
 ```
-apiVersion: extensions/v1beta1
+apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: myauth
@@ -37,10 +37,11 @@ spec:
     - host: example.com
       http:
         paths:
-          - path: /auth/
+          - path: /auth
+            pathType: Prefix
             backend: # service of TelegramAuth deployment
 ---
-apiVersion: extensions/v1beta1
+apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: myapp
@@ -54,6 +55,7 @@ spec:
       http:
         paths:
           - path: /
+            pathType: Prefix
             backend: # service of upstream app
 ```
 
