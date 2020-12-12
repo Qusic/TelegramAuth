@@ -11,6 +11,7 @@ import (
 
 func main() {
 	initialize("config.yaml", log.Fatalln)
+	go runTask()
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
