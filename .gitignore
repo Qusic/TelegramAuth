@@ -1,5 +1,7 @@
 /TelegramAuth
 /config.yaml
+.vscode
+.devcontainer
 *.exe
 *.test
 *.out
