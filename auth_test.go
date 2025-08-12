@@ -41,16 +41,17 @@ func TestHandleAuth(t *testing.T) {
 		state.authCache = map[string]time.Time{}
 		ctx := context{role: role, cookie: data.token}
 		rr := httptest.NewRecorder()
-		r := httptest.NewRequest(http.MethodGet, "/", nil)
-		handleAuth(rr, r, &ctx)
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		handleAuth(rr, req, &ctx)
+		res := rr.Result()
 		if data.valid {
-			assert.Equal(t, http.StatusOK, rr.Code)
-			header, ok := rr.HeaderMap[config.authHeader]
+			assert.Equal(t, http.StatusOK, res.StatusCode)
+			header, ok := res.Header[config.authHeader]
 			assert.True(t, ok)
 			assert.Equal(t, []string{validUser}, header)
 		} else {
-			assert.Equal(t, http.StatusUnauthorized, rr.Code)
-			header, ok := rr.HeaderMap[config.authHeader]
+			assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
+			header, ok := res.Header[config.authHeader]
 			assert.False(t, ok)
 			assert.Nil(t, header)
 		}
