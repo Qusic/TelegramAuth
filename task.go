@@ -3,12 +3,8 @@ package main
 import "time"
 
 func runTask() {
-	timeoutTick := time.Tick(config.authTimeout)
-	for {
-		select {
-		case <-timeoutTick:
-			checkExpiration(time.Now())
-		}
+	for now := range time.Tick(config.authTimeout) {
+		checkExpiration(now)
 	}
 }
 
