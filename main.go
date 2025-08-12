@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -10,7 +11,11 @@ import (
 )
 
 func main() {
-	initialize("config.yaml", log.Fatalln)
+	arg := "config.yml"
+	if len(os.Args) > 1 {
+		arg = os.Args[1]
+	}
+	initialize(arg, log.Fatalln)
 	go runTask()
 
 	r := chi.NewRouter()
