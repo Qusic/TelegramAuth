@@ -4,12 +4,13 @@ Authorization server using [Telegram](https://core.telegram.org/widgets/login) a
 
 Works with:
 
+* [Caddy](https://caddyserver.com/docs/caddyfile/directives/forward_auth)
 * [NGINX](http://nginx.org/en/docs/http/ngx_http_auth_request_module.html)
 * [NGINX Ingress controller](https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/annotations/#external-authentication)
 
 Usage:
 
-1. Create [`config.yaml`](config.example.yaml).
+1. Create [`config.yml`](config.example.yml).
 2. Run the executable in the directory containing the config file.
 
 Endpoints:
@@ -22,6 +23,35 @@ Endpoints:
   Unauthorized users should be redirected here to login with Telegram.
 * `/prefix/callback`  \
   Telegram redirects authenticated users here to further redirect them to the app if authorized.
+
+Example with Caddy:
+
+```
+(auth) {
+  reverse_proxy myauth {
+    method GET
+    rewrite /auth/?role={args[0]}
+    @200 status 200
+    handle_response @200 {
+      request_header X-Telegram-Auth {rp.header.X-Telegram-Auth}
+    }
+    @401 status 401
+    handle_response @401 {
+      redir * /auth/login?role={args[0]}&rd={uri}
+    }
+  }
+}
+
+http:// {
+  handle /auth/* {
+    reverse_proxy myauth
+  }
+  handle {
+    import auth abc
+    reverse_proxy myapp
+  }
+}
+```
 
 Example with NGINX Ingress controller:
 
