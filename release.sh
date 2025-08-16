@@ -1,7 +1,8 @@
 #!/usr/bin/env fish
 go test -v ./... && staticcheck || exit 1
 set manifest ghcr.io/qusic/telegram-auth:latest
-podman manifest rm $manifest --ignore
+podman image untag $manifest
+podman manifest rm $manifest
 podman manifest create $manifest \
   --annotation org.opencontainers.image.description=TelegramAuth \
   --annotation org.opencontainers.image.source=https://github.com/Qusic/TelegramAuth \
