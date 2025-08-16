@@ -79,9 +79,10 @@ func setupTestToken() (
 }
 
 func TestInitialize(t *testing.T) {
-	initialize("config.example.yaml", t.Fatal)
+	initialize("config.example.yml", t.Fatal)
 	assert.Equal(t, "MyTelegramBot", config.botName)
 	assert.Equal(t, "1234:ABCDEFG", config.botToken)
+	assert.Equal(t, "tcp", config.listenNetwork)
 	assert.Equal(t, ":80", config.listenAddress)
 	assert.Equal(t, "/auth", config.pathPrefix)
 	assert.Equal(t, "role", config.queryRole)

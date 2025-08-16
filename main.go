@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"time"
@@ -38,10 +39,14 @@ func main() {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	})
 
-	log.Printf("TelegramAuth is starting for @%v on %v%v",
-		config.botName, config.listenAddress, config.pathPrefix)
-	err := http.ListenAndServe(config.listenAddress, r)
+	log.Printf("TelegramAuth is starting for @%v on %v://%v%v",
+		config.botName, config.listenNetwork, config.listenAddress, config.pathPrefix)
+	listener, err := net.Listen(config.listenNetwork, config.listenAddress)
 	if err != nil {
-		log.Fatalln("fail to start server:", err)
+		log.Fatalln("fail to create listener:", err)
+	}
+	err = http.Serve(listener, r)
+	if err != nil {
+		log.Fatalln("fail to serve http:", err)
 	}
 }

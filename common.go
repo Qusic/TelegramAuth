@@ -28,6 +28,7 @@ var (
 	config struct {
 		botName       string
 		botToken      string
+		listenNetwork string
 		listenAddress string
 		pathPrefix    string
 		queryRole     string
@@ -86,6 +87,15 @@ func initialize(file string, fatal func(v ...interface{})) {
 		}
 		return strs
 	}
+	readListen := func(str, field string, required bool) (string, string) {
+		str = readString(str, field, required)
+		parts := strings.SplitN(str, "://", 2)
+		if len(parts) == 2 {
+			return parts[0], parts[1]
+		} else {
+			return "tcp", parts[0]
+		}
+	}
 	readDuration := func(str, field string, required bool) time.Duration {
 		str = readString(str, field, required)
 		duration, err := time.ParseDuration(str)
@@ -105,7 +115,7 @@ func initialize(file string, fatal func(v ...interface{})) {
 	}
 	config.botName = readString(root.Global.Bot, "global.bot", true)
 	config.botToken = readString(root.Global.Token, "global.token", true)
-	config.listenAddress = readString(root.Global.Address, "global.address", true)
+	config.listenNetwork, config.listenAddress = readListen(root.Global.Address, "global.address", true)
 	config.pathPrefix = readString(root.Global.Prefix, "global.prefix", false)
 	config.queryRole = readString(root.Query.Role, "query.role", true)
 	config.queryRedirect = readString(root.Query.Redirect, "query.redirect", true)
