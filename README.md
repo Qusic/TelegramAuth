@@ -1,5 +1,8 @@
 # TelegramAuth
 
+> [!IMPORTANT]
+> Archived in favor of [oauth2-proxy](https://github.com/oauth2-proxy/oauth2-proxy) as Telegram Login now supports [OIDC](https://core.telegram.org/bots/telegram-login).
+
 Authorization server using [Telegram](https://core.telegram.org/widgets/login) as the authentication provider.
 
 Works with:
